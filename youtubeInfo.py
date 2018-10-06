@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 import json
 
-def fetchAElemen(url):
+def __fetchAElemen(url):
     '''
     Fetches the html from given url and retruns all elements found with a tag.
     '''
@@ -14,7 +14,7 @@ def fetchAElemen(url):
     return elementList
 
 
-def getVideoUrls(elementList):
+def __getVideoUrls(elementList):
     '''
     Returns urls for videos from elements.
     '''
@@ -29,7 +29,7 @@ def getVideoUrls(elementList):
     return links
 
 
-def getVideoTitles(elementList):
+def __getVideoTitles(elementList):
     '''
     Returns titles for videos from elements.
     '''
@@ -38,7 +38,6 @@ def getVideoTitles(elementList):
         try:
             if( 'yt-uix-sessionlink' in video.attrs['class'] and
                     'spf-link' in video.attrs['class'] and
-                    'data-title' in video.attrs == False and
                     'dir' in video.attrs):
                 content = video.contents[0].replace('\n', '')
                 content = content.strip()
@@ -51,7 +50,7 @@ def getVideoTitles(elementList):
 
     return titles
 
-def getVideoCreators(elementList):
+def __getVideoCreators(elementList):
     '''
     Returns creators for videos from elements.
     '''
@@ -74,7 +73,7 @@ def getVideoCreators(elementList):
     return creators
 
 
-def buildJson(videoUrls, videoCreators, videoTitles):
+def __buildJson(videoUrls, videoCreators, videoTitles):
     '''
     Returns json built from fetched data.
     '''
@@ -87,10 +86,9 @@ def buildJson(videoUrls, videoCreators, videoTitles):
     return json.dumps(str(videoDictionaryList))
 
 
-def main():
-    url = "http://www.youtube.com/playlist?list=PLQVvvaa0QuDfKTOs3Keq_kaG2P55YRn5v"
-
-    elements = fetchAElemen(url)
-    creators = getVideoCreators(elements)
-    titles = getVideoTitles(elements)
-    urls = getVideoUrls(elements)
+def getPlaylistVideoinfo(url):
+    elements = __fetchAElemen(url)
+    creators = __getVideoCreators(elements)
+    titles = __getVideoTitles(elements)
+    urls = __getVideoUrls(elements)
+    return __buildJson(urls, creators, titles)
