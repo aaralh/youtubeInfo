@@ -2,45 +2,95 @@ import requests
 from bs4 import BeautifulSoup as bs
 import json
 
-url = "http://www.youtube.com/playlist?list=PLQVvvaa0QuDfKTOs3Keq_kaG2P55YRn5v"
+def fetchAElemen(url):
+    '''
+    Fetches the html from given url and retruns all elements found with a tag.
+    '''
+    response=requests.get(url)
+    page = response.content
 
-response=requests.get(url)
-page = response.content
-
-soup = bs(page, features="html.parser")
-videoList = soup.find_all("a")
-creatorList = soup.find_all("a")
-links = []
-videoNames = []
-creators = []
-
-
-for video in videoList:
-    try:
-        if( 'pl-video-title-link' in video.attrs['class']):
-            links.append(video['href'])
-            
-    except:
-        continue
+    soup = bs(page, features="html.parser")
+    elementList = soup.find_all("a")
+    return elementList
 
 
-for creator in creatorList:
-    try:
-        if( 'yt-uix-sessionlink' in creator.attrs['class'] and 'spf-link' in creator.attrs['class']):
-            if(('dir' in creator.attrs) == False):
-                creators.append(str(creator.contents[0]))
-            if(('data-title' in creator.attrs) == False):
-                line = creator.contents[0].replace('\n', '')
-                line = line.strip()
-                videoNames.append(str(line))
-    except:
-        continue
+def getVideoUrls(elementList):
+    '''
+    Returns urls for videos from elements.
+    '''
+    links = []
+    for video in elementList:
+        try:
+            if( 'pl-video-title-link' in video.attrs['class']):
+                links.append(video['href'])      
+        except:
+            continue
+
+    return links
 
 
-videoDictionaryList = []
+def getVideoTitles(elementList):
+    '''
+    Returns titles for videos from elements.
+    '''
+    titles = []
+    for video in elementList:
+        try:
+            if( 'yt-uix-sessionlink' in video.attrs['class'] and
+                    'spf-link' in video.attrs['class'] and
+                    'data-title' in video.attrs == False and
+                    'dir' in video.attrs):
+                content = video.contents[0].replace('\n', '')
+                content = content.strip()
+                if(content != ""):
+                    titles.append(str(content.encode("utf-8")))
+        except:
+            continue
+    if(len(titles) > 1):
+        titles = titles[1:]
 
-for index in range(len(links) - 1):
-    item = str({"url": links[index].decode("utf-8"), "creator": creators[(26 + index)].decode("utf-8"), "name": videoNames[index].decode("utf-8")})
-    videoDictionaryList.append((str(item.decode("utf-8"))))
+    return titles
 
-print(videoDictionaryList)
+def getVideoCreators(elementList):
+    '''
+    Returns creators for videos from elements.
+    '''
+    creators = []
+    for video in elementList:
+        try:
+            if( 'yt-uix-sessionlink' in video.attrs['class'] and
+                    'spf-link' in video.attrs['class'] and
+                    ('dir' in video.attrs) == False):
+                content = video.contents[0].replace('\n', '')
+                content = content.strip()
+                if(content != ""):
+                    creators.append(str(content.encode("utf-8")))
+        except:
+            continue
+
+    if(len(creators) > 2):
+        creators = creators[2:]
+    
+    return creators
+
+
+def buildJson(videoUrls, videoCreators, videoTitles):
+    '''
+    Returns json built from fetched data.
+    '''
+    videoDictionaryList = []
+
+    for index in range(len(videoUrls) - 1):
+        item = {"url": videoUrls[index].replace("b'", "'").replace("'", ""), "creator": videoCreators[index].replace("b'", "'").replace("'", ""), "name": videoTitles[index].replace("b'", "'").replace("'", "")}
+        videoDictionaryList.append(item)
+
+    return json.dumps(str(videoDictionaryList))
+
+
+def main():
+    url = "http://www.youtube.com/playlist?list=PLQVvvaa0QuDfKTOs3Keq_kaG2P55YRn5v"
+
+    elements = fetchAElemen(url)
+    creators = getVideoCreators(elements)
+    titles = getVideoTitles(elements)
+    urls = getVideoUrls(elements)
