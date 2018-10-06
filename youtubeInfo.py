@@ -1,11 +1,17 @@
 import requests
 from bs4 import BeautifulSoup as bs
 import json
+import re
+import validators
+import logging
 
 def __fetchAElemen(url):
-    '''
-    Fetches the html from given url and retruns all elements found with a tag.
-    '''
+    """ Fetch html from url and return all elements with a tag.
+
+    Keyword arguments:
+    url -- The url where to fetch the html.
+    """
+
     response=requests.get(url)
     page = response.content
 
@@ -14,25 +20,35 @@ def __fetchAElemen(url):
     return elementList
 
 
-def __getVideoUrls(elementList):
-    '''
-    Returns urls for videos from elements.
-    '''
-    links = []
+def __getvideoIds(elementList):
+    """ Return urls for videos from elements.
+
+    Keyword arguments:
+    elementList -- List of bs4 element tags.
+    """
+
+    ids = []
     for video in elementList:
         try:
             if( 'pl-video-title-link' in video.attrs['class']):
-                links.append(video['href'])      
+                url = video['href']
+
+                # Parsing video id from the url
+                strings = re.split(r"[=&]", url)
+                ids.append(strings[1])
         except:
             continue
 
-    return links
+    return ids
 
 
 def __getVideoTitles(elementList):
-    '''
-    Returns titles for videos from elements.
-    '''
+    """ Return titles for videos from elements.
+
+    Keyword arguments:
+    elementList -- List of bs4 element tags.
+    """
+
     titles = []
     for video in elementList:
         try:
@@ -50,10 +66,14 @@ def __getVideoTitles(elementList):
 
     return titles
 
+
 def __getVideoCreators(elementList):
-    '''
-    Returns creators for videos from elements.
-    '''
+    """ Return creators for videos from elements.
+
+    Keyword arguments:
+    elementList -- List of bs4 element tags.
+    """
+
     creators = []
     for video in elementList:
         try:
@@ -73,22 +93,40 @@ def __getVideoCreators(elementList):
     return creators
 
 
-def __buildJson(videoUrls, videoCreators, videoTitles):
-    '''
-    Returns json built from fetched data.
-    '''
-    videoDictionaryList = []
+def __buildVideoInfoList(videoIds, videoCreators, videoTitles):
+    """ Return list containing video data in dictionaries.
 
-    for index in range(len(videoUrls) - 1):
-        item = {"url": videoUrls[index].replace("b'", "'").replace("'", ""), "creator": videoCreators[index].replace("b'", "'").replace("'", ""), "name": videoTitles[index].replace("b'", "'").replace("'", "")}
+    Keyword arguments:
+    videoIds -- List of video ids.
+    videoCreators -- List of video creators.
+    videoTitles -- List of video titles.
+    """
+
+    # Check if lists are different lengths and return "Error" if so.
+    if((len(videoIds) != len(videoCreators)) or
+        (len(videoIds) != len(videoTitles)) or
+        (len(videoIds) == 0)):
+        logging.warning("Data fetched from playlist is not valid.")
+        return []
+
+    videoDictionaryList = []
+    for index in range(len(videoIds)):
+        item = {"id": videoIds[index].replace("b'", "'").replace("'", ""), "creator": videoCreators[index].replace("b'", "'").replace("'", ""), "name": videoTitles[index].replace("b'", "'").replace("'", "")}
         videoDictionaryList.append(item)
 
-    return json.dumps(str(videoDictionaryList))
+    return videoDictionaryList
 
 
 def getPlaylistVideoinfo(url):
+    """ Return list cotnaining video in dictionary from given playlist.
+
+    Keyword arguments:
+    url -- Url of the playlist.
+    """
+
+    if(not validators.url(url)):
+        logging.error(f"Url {url} is not valid.")
+        return []
+
     elements = __fetchAElemen(url)
-    creators = __getVideoCreators(elements)
-    titles = __getVideoTitles(elements)
-    urls = __getVideoUrls(elements)
-    return __buildJson(urls, creators, titles)
+    return __buildVideoInfoList(__getvideoIds(elements), __getVideoCreators(elements), __getVideoTitles(elements))
