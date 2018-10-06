@@ -5,7 +5,23 @@ import re
 import validators
 import logging
 
-def __fetchAElemen(url):
+def __fetchVideoInfo(url):
+    """ Fetch video info from url and return json.
+
+    Keyword arguments:
+    url -- The url where to fetch the html.
+    """
+
+    response=requests.get(url)
+    page = response.content
+
+    soup = bs(page, features="html.parser")
+    elementList = soup.find_all("script")
+    element = elementList[12].contents
+    return element
+
+
+def __fetchAElement(url):
     """ Fetch html from url and return all elements with a tag.
 
     Keyword arguments:
@@ -111,7 +127,9 @@ def __buildVideoInfoList(videoIds, videoCreators, videoTitles):
 
     videoDictionaryList = []
     for index in range(len(videoIds)):
-        item = {"id": videoIds[index].replace("b'", "'").replace("'", ""), "creator": videoCreators[index].replace("b'", "'").replace("'", ""), "name": videoTitles[index].replace("b'", "'").replace("'", "")}
+        item = {"id": videoIds[index].replace("b'", "'").replace("'", ""),
+                "creator": videoCreators[index].replace("b'", "'").replace("'", ""),
+                "name": videoTitles[index].replace("b'", "'").replace("'", "")}
         videoDictionaryList.append(item)
 
     return videoDictionaryList
@@ -128,5 +146,22 @@ def getPlaylistVideoinfo(url):
         logging.error(f"Url {url} is not valid.")
         return []
 
-    elements = __fetchAElemen(url)
+    elements = __fetchAElement(url)
     return __buildVideoInfoList(__getvideoIds(elements), __getVideoCreators(elements), __getVideoTitles(elements))
+
+
+def getVideoInfo(url):
+    """ Return dictionary containing video info.
+
+    Keyword arguments:
+    url -- Url of the video.
+    """
+    item = {}
+    properties = ["author", "title", "length_seconds"]
+    element = __fetchVideoInfo(url)
+    strings = re.split(r"[\{\},\"]", str(element))
+
+    for prop in properties:
+        item[prop] = strings[strings.index(prop) + 2].replace("\\", "").encode('ascii', 'ignore')
+
+    return item
