@@ -135,8 +135,8 @@ def __buildVideoInfoList(videoIds, videoCreators, videoTitles):
     return videoDictionaryList
 
 
-def getPlaylistVideoinfo(url):
-    """ Return list cotnaining video in dictionary from given playlist.
+def getPlaylistVideoInfo(url):
+    """ Return list containing video in dictionary from given playlist.
 
     Keyword arguments:
     url -- Url of the playlist.
