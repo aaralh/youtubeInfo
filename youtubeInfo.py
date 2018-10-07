@@ -157,11 +157,14 @@ def getVideoInfo(url):
     url -- Url of the video.
     """
     item = {}
-    properties = ["author", "title", "length_seconds"]
+    properties = ["video_id", "author", "title", "length_seconds"]
     element = __fetchVideoInfo(url)
     strings = re.split(r"[\{\},\"]", str(element))
-
     for prop in properties:
-        item[prop] = strings[strings.index(prop) + 2].replace("\\", "").encode('ascii', 'ignore')
+        try:
+            item[prop] = str(strings[strings.index(prop) + 2].replace("\\", "").encode('ascii', 'ignore')).replace("b'", "'").replace("'", "")
+        except Exception as e:
+            logging.error(f"An error occurred: {e}")
+            continue
 
     return item
