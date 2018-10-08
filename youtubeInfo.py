@@ -156,10 +156,27 @@ def getVideoInfo(url):
     Keyword arguments:
     url -- Url of the video.
     """
+
     item = {}
     properties = ["video_id", "author", "title", "length_seconds"]
     element = __fetchVideoInfo(url)
-    strings = re.split(r"[\{\},\"]", str(element))
+    openParenthesis = 0
+    closeParenthesis = 0
+    openIndex = -1
+    closeIndex = -1
+    element = str(element)[37:]
+    for index, char in enumerate(str(element)):
+        if(str(char) == "{"):
+            openParenthesis = openParenthesis + 1
+            if(openIndex == -1):
+                openIndex = index
+        elif(str(char) == "}"):
+            closeParenthesis = closeParenthesis + 1
+            closeIndex = index
+            if(openParenthesis == closeParenthesis):
+                break
+
+    strings = re.split(r"[\{\},\"]", str(element[openIndex:closeIndex]))
     for prop in properties:
         try:
             item[prop] = str(strings[strings.index(prop) + 2].replace("\\", "").encode('ascii', 'ignore')).replace("b'", "'").replace("'", "")
