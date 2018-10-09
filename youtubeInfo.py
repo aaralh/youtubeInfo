@@ -1,10 +1,21 @@
 import requests
-from bs4 import BeautifulSoup as bs
-import json
 import re
 import validators
 import logging
+import time
 
+
+def timing(f):
+    def wrap(*args):
+        time1 = time.time()
+        ret = f(*args)
+        time2 = time.time()
+        print('{:s} function took {:.3f} ms'.format(f.__name__, (time2-time1)*1000.0))
+
+        return ret
+    return wrap
+
+@timing
 def __fetchVideoInfo(url):
     """ Fetch video info from url and return json.
 
@@ -12,13 +23,10 @@ def __fetchVideoInfo(url):
     url -- The url where to fetch the html.
     """
 
-    response=requests.get(url)
-    page = response.content
+    response = requests.get(url)
 
-    soup = bs(page, features="html.parser")
-    elementList = soup.find_all("script")
-    element = elementList[12].contents
-    return element
+    strings = re.split('<[^>]*script', str(response.content))
+    return strings[33]
 
 
 def __fetchAElement(url):
@@ -28,7 +36,7 @@ def __fetchAElement(url):
     url -- The url where to fetch the html.
     """
 
-    response=requests.get(url)
+    response = requests.get(url)
     page = response.content
 
     soup = bs(page, features="html.parser")
@@ -150,7 +158,7 @@ def getPlaylistVideoInfo(url):
     return __buildVideoInfoList(__getvideoIds(elements), __getVideoCreators(elements), __getVideoTitles(elements))
 
 
-def getVideoInfo(url):
+def getVideoInfo(url, ):
     """ Return dictionary containing video info.
 
     Keyword arguments:
@@ -160,28 +168,17 @@ def getVideoInfo(url):
     item = {}
     properties = ["video_id", "author", "title", "length_seconds"]
     element = __fetchVideoInfo(url)
-    openParenthesis = 0
-    closeParenthesis = 0
-    openIndex = -1
-    closeIndex = -1
-    element = str(element)[37:]
-    for index, char in enumerate(str(element)):
-        if(str(char) == "{"):
-            openParenthesis = openParenthesis + 1
-            if(openIndex == -1):
-                openIndex = index
-        elif(str(char) == "}"):
-            closeParenthesis = closeParenthesis + 1
-            closeIndex = index
-            if(openParenthesis == closeParenthesis):
-                break
-
-    strings = re.split(r"[\{\},\"]", str(element[openIndex:closeIndex]))
+    strings = re.split(r"[,\"]", str(element))
+    error = False
     for prop in properties:
         try:
             item[prop] = str(strings[strings.index(prop) + 2].replace("\\", "").encode('ascii', 'ignore')).replace("b'", "'").replace("'", "")
         except Exception as e:
             logging.error(f"An error occurred: {e}")
+            error = True
             continue
+
+    if(error):
+       logging.error("Error occure while getting video info")
 
     return item
