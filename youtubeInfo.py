@@ -3,7 +3,7 @@ import re
 import validators
 import logging
 import time
-
+from bs4 import BeautifulSoup as bs
 
 def timing(f):
     def wrap(*args):
@@ -38,7 +38,6 @@ def __fetchAElement(url):
 
     response = requests.get(url)
     page = response.content
-
     soup = bs(page, features="html.parser")
     elementList = soup.find_all("a")
     return elementList
