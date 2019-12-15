@@ -146,7 +146,7 @@ def getPlaylistVideoInfo(url):
     return __buildVideoInfoList(__getvideoIds(elements), __getVideoCreators(elements), __getVideoTitles(elements))
 
 
-def getVideoInfo(url, ):
+def getVideoInfo(url):
     """ Return dictionary containing video info.
 
     Keyword arguments:
